@@ -1,0 +1,7 @@
+# Example dynamic config — not strictly required if using labels.
+http:
+  middlewares:
+    redirect-to-www:
+      redirectRegex:
+        regex: "^http://(.*)"
+        replacement: "https://$1"
