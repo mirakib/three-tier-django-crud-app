@@ -1,26 +1,40 @@
-# Build stage
-FROM python:3.12-alpine AS build
-# system deps for psycopg2 build and building wheels
-RUN apk add --no-cache build-base linux-headers postgresql-dev libffi-dev musl-dev
+# ---------------------------
+# Stage 1 — Build wheels
+# ---------------------------
+FROM python:3.12-alpine AS builder
 
-WORKDIR /app
-COPY requirements.txt /app/
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
+# System deps for building psycopg2 + wheels
+RUN apk add --no-cache gcc musl-dev python3-dev postgresql-dev
 
-# Final stage
+WORKDIR /wheels
+
+# Copy requirements
+COPY requirements.txt .
+
+# Build wheels for ALL packages + dependencies
+RUN pip wheel --no-cache-dir -r requirements.txt -w /wheels
+
+
+# ---------------------------
+# Stage 2 — Final runtime
+# ---------------------------
 FROM python:3.12-alpine
-RUN apk add --no-cache libpq
+
+# Install system deps for runtime psycopg2
+RUN apk add --no-cache postgresql-client
+
 WORKDIR /app
-COPY --from=build /wheels /wheels
-COPY requirements.txt /app/
+
+# Copy wheels from stage 1
+COPY --from=builder /wheels /wheels
+
+# Install using wheelhouse only (no internet)
+COPY requirements.txt .
 RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt
 
-# Copy project
-COPY . /app
-RUN chmod +x /app/entrypoint.sh
+# Copy backend project files
+COPY . .
 
-ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
-ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["gunicorn", "backend_project.asgi:application", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "--workers", "1"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
