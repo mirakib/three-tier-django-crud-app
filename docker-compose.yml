@@ -1,5 +1,6 @@
 services:
   traefik:
+    container_name: traefik
     image: traefik:v3.1   
     command:
       - --providers.docker=true
@@ -21,6 +22,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    container_name: frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -34,6 +36,7 @@ services:
     restart: unless-stopped
 
   backend:
+    container_name: backend
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -59,6 +62,7 @@ services:
     restart: unless-stopped
 
   db:
+    container_name: postgres_db
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
@@ -72,6 +76,7 @@ services:
     restart: unless-stopped
 
   pgadmin:
+    container_name: pgadmin
     image: dpage/pgadmin4:7
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
